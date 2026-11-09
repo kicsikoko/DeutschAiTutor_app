@@ -15,6 +15,7 @@
             --text-muted: #94a3b8;
             --border-color: #334155;
             --success-color: #10b981;
+            --error-color: #ef4444;
         }
 
         * {
@@ -51,10 +52,9 @@
             margin-top: 4px;
         }
 
-        /* --- FÜLEK STÍLUSA --- */
         .nav-tabs {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             margin-bottom: 20px;
             background-color: var(--card-bg);
             padding: 6px;
@@ -64,12 +64,12 @@
 
         .tab-btn {
             flex: 1;
-            padding: 10px;
+            padding: 10px 6px;
             border: none;
             background: transparent;
             color: var(--text-muted);
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -88,7 +88,6 @@
             display: block;
         }
 
-        /* --- KÁRTYÁK ÉS KERESŐ --- */
         .search-box {
             display: flex;
             gap: 8px;
@@ -155,6 +154,14 @@
             font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
+        }
+
+        .badge-success {
+            background-color: var(--success-color);
+        }
+
+        .badge-error {
+            background-color: var(--error-color);
         }
 
         .translation {
@@ -230,7 +237,7 @@
             display: none;
         }
 
-        /* --- FLASHCARD GYAKORLÓ STÍLUSOK --- */
+        /* GYAKORLÓ STÍLUSOK */
         .flashcard-box {
             text-align: center;
             padding: 30px 20px;
@@ -241,17 +248,6 @@
             align-items: center;
             cursor: pointer;
             user-select: none;
-            transition: transform 0.2s ease;
-        }
-
-        .flashcard-box:active {
-            transform: scale(0.98);
-        }
-
-        .flashcard-hint {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 16px;
         }
 
         .practice-controls {
@@ -270,6 +266,22 @@
             font-weight: 600;
             cursor: pointer;
         }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .tag-item {
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -279,16 +291,16 @@
         <p>AI Szótár és Nyelvtani Segéd</p>
     </header>
 
-    <!-- FŐ FÜLEK -->
     <div class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('szotarTab', this)">📘 Szótár & Kereső</button>
-        <button class="tab-btn" onclick="switchTab('gyakorloTab', this)">🏋️ Napi Gyakorló</button>
+        <button class="tab-btn active" onclick="switchTab('szotarTab', this)">📘 Szótár</button>
+        <button class="tab-btn" onclick="switchTab('gyakorloTab', this)">🏋️ Gyakorló</button>
+        <button class="tab-btn" onclick="switchTab('nyelvtanTab', this)">📙 Nyelvtan</button>
     </div>
 
-    <!-- ================= 1. SZÓTÁR & KERESŐ FÜL ================= -->
+    <!-- ================= 1. SZÓTÁR FÜL ================= -->
     <div id="szotarTab" class="tab-content active">
         <div class="search-box">
-            <input type="text" id="queryInput" placeholder="Német szó vagy mondat..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="queryInput" placeholder="Német szó vagy mondat..." onkeypress="if(event.key==='Enter') analyzeWord()">
             <button class="btn-primary" onclick="analyzeWord()">Elemzés</button>
         </div>
 
@@ -321,12 +333,12 @@
         </div>
     </div>
 
-    <!-- ================= 2. NAPI GYAKORLÓ FÜL ================= -->
+    <!-- ================= 2. GYAKORLÓ FÜL ================= -->
     <div id="gyakorloTab" class="tab-content">
         <div id="practiceContainer" class="card flashcard-box" onclick="flipCard()">
             <div id="cardFront">
                 <div class="word-title" id="practiceWord" style="font-size: 1.8rem;">—</div>
-                <div class="flashcard-hint">Kattints ide a fordítás felfedéséhez! 🔄</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 16px;">Kattints ide a fordításért! 🔄</div>
             </div>
             <div id="cardBack" style="display: none;">
                 <div class="translation" id="practiceTranslation" style="font-size: 1.5rem; margin-bottom: 8px;">—</div>
@@ -337,6 +349,32 @@
         <div class="practice-controls">
             <button class="btn-secondary" onclick="flipCard()">🔄 Megfordítás</button>
             <button class="btn-primary" style="flex: 1;" onclick="nextPracticeWord()">Következő szó ➡️</button>
+        </div>
+    </div>
+
+    <!-- ================= 3. NYELVTAN & MONDATELLENŐRZŐ FÜL ================= -->
+    <div id="nyelvtanTab" class="tab-content">
+        <div class="search-box">
+            <input type="text" id="grammarInput" placeholder="Írj egy mondatot (pl. Ich fahre mit den Zug...)" onkeypress="if(event.key==='Enter') checkGrammar()">
+            <button class="btn-primary" onclick="checkGrammar()">Ellenőrzés</button>
+        </div>
+
+        <div id="grammarLoading" class="loading">Nyelvtani elemzés folyamatban...</div>
+
+        <div id="grammarResultCard" class="card" style="display: none;">
+            <div class="card-header">
+                <span class="word-title">Mondat Ellenőrzés</span>
+                <span class="badge" id="grammarStatusBadge"></span>
+            </div>
+
+            <div class="section-title">Javított mondat</div>
+            <div class="translation" id="resCorrectedSentence" style="color: #10b981;"></div>
+
+            <div class="section-title">Nyelvtani elemek</div>
+            <div class="tag-list" id="resGrammarTags"></div>
+
+            <div class="section-title">Magyarázat</div>
+            <div class="detail-text" id="resGrammarExplanation"></div>
         </div>
     </div>
 
@@ -353,13 +391,7 @@
             document.getElementById(tabId).classList.add('active');
             btnElement.classList.add('active');
 
-            if (tabId === 'gyakorloTab') {
-                startPractice();
-            }
-        }
-
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') analyzeWord();
+            if (tabId === 'gyakorloTab') startPractice();
         }
 
         async function analyzeWord() {
@@ -375,12 +407,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query })
                 });
-
                 const data = await res.json();
-
-                if (!res.ok) {
-                    throw new Error(data.detail || "Hiba a lekérés során");
-                }
+                if (!res.ok) throw new Error(data.detail || "Hiba a lekérés során");
 
                 currentAnalysis = data;
                 renderResult(currentAnalysis);
@@ -436,7 +464,7 @@
                 container.innerHTML = '';
 
                 if (savedWords.length === 0) {
-                    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Még nincs mentett szavad. Elemzés után ments el párat!</div>';
+                    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Még nincs mentett szavad.</div>';
                     return;
                 }
 
@@ -457,7 +485,6 @@
             }
         }
 
-        /* --- GYAKORLÓ LOGIKA --- */
         function startPractice() {
             if (savedWords.length === 0) {
                 document.getElementById('practiceWord').innerText = "Nincs mentett szó!";
@@ -479,7 +506,6 @@
             document.getElementById('practiceTranslation').innerText = wordObj.hungarian_translation;
             document.getElementById('practiceExplanation').innerText = wordObj.grammar_explanation || '—';
 
-            // Alaphelyzet: előlap látszik
             isCardFlipped = false;
             document.getElementById('cardFront').style.display = 'block';
             document.getElementById('cardBack').style.display = 'none';
@@ -488,20 +514,65 @@
         function flipCard() {
             if (savedWords.length === 0) return;
             isCardFlipped = !isCardFlipped;
-            if (isCardFlipped) {
-                document.getElementById('cardFront').style.display = 'none';
-                document.getElementById('cardBack').style.display = 'block';
-            } else {
-                document.getElementById('cardFront').style.display = 'block';
-                document.getElementById('cardBack').style.display = 'none';
-            }
+            document.getElementById('cardFront').style.display = isCardFlipped ? 'none' : 'block';
+            document.getElementById('cardBack').style.display = isCardFlipped ? 'block' : 'none';
         }
 
         function nextPracticeWord() {
             if (savedWords.length === 0) return;
-            // Véletlenszerű kártyaválasztás a mentett szavak közül
             currentPracticeIndex = Math.floor(Math.random() * savedWords.length);
             showPracticeCard();
+        }
+
+        /* --- MONDATELLENŐRZŐ LOGIKA --- */
+        async function checkGrammar() {
+            const sentence = document.getElementById('grammarInput').value.trim();
+            if (!sentence) return;
+
+            document.getElementById('grammarLoading').style.display = 'block';
+            document.getElementById('grammarResultCard').style.display = 'none';
+
+            try {
+                const res = await fetch('/api/grammar/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sentence })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Hiba az ellenőrzés során");
+
+                renderGrammarResult(data);
+            } catch (err) {
+                alert("Hiba történt: " + err.message);
+            } finally {
+                document.getElementById('grammarLoading').style.display = 'none';
+            }
+        }
+
+        function renderGrammarResult(data) {
+            const badge = document.getElementById('grammarStatusBadge');
+            if (data.is_correct) {
+                badge.innerText = "HELYES MONDAT ✓";
+                badge.className = "badge badge-success";
+            } else {
+                badge.innerText = "HIBA A MONDATBAN ✗";
+                badge.className = "badge badge-error";
+            }
+
+            document.getElementById('resCorrectedSentence').innerText = data.corrected_sentence;
+            document.getElementById('resGrammarExplanation').innerText = data.explanation;
+
+            const tagContainer = document.getElementById('resGrammarTags');
+            tagContainer.innerHTML = '';
+            data.grammar_points.forEach(pt => {
+                const tag = document.createElement('span');
+                tag.className = 'tag-item';
+                tag.innerText = pt;
+                tagContainer.appendChild(tag);
+            });
+
+            document.getElementById('grammarResultCard').style.display = 'block';
         }
 
         loadHistory();

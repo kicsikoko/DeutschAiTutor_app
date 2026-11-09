@@ -187,3 +187,66 @@ def get_all_words():
             "grammar_explanation": r[5]
         })
     return words
+
+# --- ÉS ÚJ PYDANTIC SCHEMAS A NYELVTANHOZ ---
+class GrammarCheckRequest(BaseModel):
+    sentence: str
+
+class GrammarCheckResponse(BaseModel):
+    original_sentence: str
+    is_correct: bool
+    corrected_sentence: str
+    explanation: str
+    grammar_points: List[str]
+
+# --- ÚJ ENDPOINT: NYELVTAN ÉS MONDATELLENŐRZÉS ---
+
+@app.post("/api/grammar/check", response_model=GrammarCheckResponse)
+async def check_grammar(req: GrammarCheckRequest):
+    """Elemzi a felhasználó által beírt német mondatot, kijavítja a hibákat és elmagyarázza a nyelvtant."""
+    sentence = req.sentence.strip()
+    if not sentence:
+        raise HTTPException(status_code=400, detail="Üres mondatot adtál meg!")
+
+    prompt = f"""
+    Elemzed ezt a német mondatot egy magyarul tanuló A2/B1 szintű diáknak: "{sentence}"
+
+    Add meg a választ szigorúan JSON-ben:
+    - original_sentence: A beírt mondat.
+    - is_correct: True, ha a mondat nyelvtanilag és szórendileg 100%-ban helyes, egyébként False.
+    - corrected_sentence: A helyes német mondat (ha eredetileg is jó volt, akkor megegyezik a beírttal).
+    - explanation: Részletes magyar nyelvtani magyarázat a hibákról vagy a szerkezetről (pl. igehelyzet, Dativ/Akkusativ prepozíciók, elváló igék, Nebensatz szabályok).
+    - grammar_points: A mondatban előforduló fő nyelvtani elemek listája (pl. ["Dativ prepozíció (mit)", "Perfekt igealak", "Verb an Position 2"]).
+    """
+
+    candidate_models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash']
+    last_exception = None
+
+    for model_name in candidate_models:
+        for attempt in range(3):
+            try:
+                print(f"Nyelvtanelemzés ({model_name}, próbálkozás: {attempt + 1}/3)...")
+                response = await client.aio.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=GrammarCheckResponse,
+                        temperature=0.2,
+                    ),
+                )
+                if response.text:
+                    return json.loads(response.text)
+            except Exception as e:
+                last_exception = e
+                err_str = str(e)
+                if "503" in err_str or "UNAVAILABLE" in err_str:
+                    await asyncio.sleep(1.5)
+                    continue
+                else:
+                    break
+
+    raise HTTPException(
+        status_code=500, 
+        detail=f"Nem sikerült kapcsolódni a Gemini API-hoz: {str(last_exception)}"
+    )
