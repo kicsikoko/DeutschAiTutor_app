@@ -35,7 +35,7 @@
 
         header {
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             padding-top: 12px;
         }
 
@@ -51,6 +51,44 @@
             margin-top: 4px;
         }
 
+        /* --- FÜLEK STÍLUSA --- */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background-color: var(--card-bg);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* --- KÁRTYÁK ÉS KERESŐ --- */
         .search-box {
             display: flex;
             gap: 8px;
@@ -94,7 +132,6 @@
             padding: 20px;
             border: 1px solid var(--border-color);
             margin-bottom: 24px;
-            display: none;
         }
 
         .card-header {
@@ -192,6 +229,47 @@
             color: var(--text-muted);
             display: none;
         }
+
+        /* --- FLASHCARD GYAKORLÓ STÍLUSOK --- */
+        .flashcard-box {
+            text-align: center;
+            padding: 30px 20px;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s ease;
+        }
+
+        .flashcard-box:active {
+            transform: scale(0.98);
+        }
+
+        .flashcard-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 16px;
+        }
+
+        .practice-controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 12px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -201,47 +279,90 @@
         <p>AI Szótár és Nyelvtani Segéd</p>
     </header>
 
-    <div class="search-box">
-        <input type="text" id="queryInput" placeholder="Német szó vagy mondat..." onkeypress="handleKeyPress(event)">
-        <button class="btn-primary" onclick="analyzeWord()">Elemzés</button>
+    <!-- FŐ FÜLEK -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('szotarTab', this)">📘 Szótár & Kereső</button>
+        <button class="tab-btn" onclick="switchTab('gyakorloTab', this)">🏋️ Napi Gyakorló</button>
     </div>
 
-    <div id="loading" class="loading">Gemini AI elemzés folyamatban...</div>
-
-    <div id="resultCard" class="card">
-        <div class="card-header">
-            <span class="word-title" id="resWord"></span>
-            <span class="badge" id="resType"></span>
-        </div>
-        <div class="translation" id="resTranslation"></div>
-        
-        <div id="conjugationContainer">
-            <div class="section-title">Nyelvtani alaktani megjegyzés</div>
-            <div class="detail-text" id="resConjugation"></div>
+    <!-- ================= 1. SZÓTÁR & KERESŐ FÜL ================= -->
+    <div id="szotarTab" class="tab-content active">
+        <div class="search-box">
+            <input type="text" id="queryInput" placeholder="Német szó vagy mondat..." onkeypress="handleKeyPress(event)">
+            <button class="btn-primary" onclick="analyzeWord()">Elemzés</button>
         </div>
 
-        <div class="section-title">Példamondatok (A2)</div>
-        <ul class="examples" id="resExamples"></ul>
+        <div id="loading" class="loading">Gemini AI elemzés folyamatban...</div>
 
-        <div class="section-title">Magyarázat</div>
-        <div class="detail-text" id="resExplanation"></div>
+        <div id="resultCard" class="card" style="display: none;">
+            <div class="card-header">
+                <span class="word-title" id="resWord"></span>
+                <span class="badge" id="resType"></span>
+            </div>
+            <div class="translation" id="resTranslation"></div>
+            
+            <div id="conjugationContainer">
+                <div class="section-title">Nyelvtani alaktani megjegyzés</div>
+                <div class="detail-text" id="resConjugation"></div>
+            </div>
 
-        <button class="btn-save" onclick="saveCurrentWord()">Mentés a szótáramba</button>
+            <div class="section-title">Példamondatok (A2)</div>
+            <ul class="examples" id="resExamples"></ul>
+
+            <div class="section-title">Magyarázat</div>
+            <div class="detail-text" id="resExplanation"></div>
+
+            <button class="btn-save" onclick="saveCurrentWord()">Mentés a szótáramba</button>
+        </div>
+
+        <div class="history-section">
+            <h2>Mentett szavaim</h2>
+            <div id="historyList"></div>
+        </div>
     </div>
 
-    <div class="history-section">
-        <h2>Mentett szavaim</h2>
-        <div id="historyList"></div>
+    <!-- ================= 2. NAPI GYAKORLÓ FÜL ================= -->
+    <div id="gyakorloTab" class="tab-content">
+        <div id="practiceContainer" class="card flashcard-box" onclick="flipCard()">
+            <div id="cardFront">
+                <div class="word-title" id="practiceWord" style="font-size: 1.8rem;">—</div>
+                <div class="flashcard-hint">Kattints ide a fordítás felfedéséhez! 🔄</div>
+            </div>
+            <div id="cardBack" style="display: none;">
+                <div class="translation" id="practiceTranslation" style="font-size: 1.5rem; margin-bottom: 8px;">—</div>
+                <div class="detail-text" id="practiceExplanation" style="font-size: 0.9rem; color: var(--text-muted);">—</div>
+            </div>
+        </div>
+
+        <div class="practice-controls">
+            <button class="btn-secondary" onclick="flipCard()">🔄 Megfordítás</button>
+            <button class="btn-primary" style="flex: 1;" onclick="nextPracticeWord()">Következő szó ➡️</button>
+        </div>
     </div>
 
     <script>
         let currentAnalysis = null;
+        let savedWords = [];
+        let currentPracticeIndex = 0;
+        let isCardFlipped = false;
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+            btnElement.classList.add('active');
+
+            if (tabId === 'gyakorloTab') {
+                startPractice();
+            }
+        }
 
         function handleKeyPress(e) {
             if (e.key === 'Enter') analyzeWord();
         }
 
-       async function analyzeWord() {
+        async function analyzeWord() {
             const query = document.getElementById('queryInput').value.trim();
             if (!query) return;
 
@@ -310,11 +431,16 @@
         async function loadHistory() {
             try {
                 const res = await fetch('/api/words');
-                const words = await res.json();
+                savedWords = await res.json();
                 const container = document.getElementById('historyList');
                 container.innerHTML = '';
 
-                words.forEach(w => {
+                if (savedWords.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 12px;">Még nincs mentett szavad. Elemzés után ments el párat!</div>';
+                    return;
+                }
+
+                savedWords.forEach(w => {
                     const item = document.createElement('div');
                     item.className = 'history-item';
                     const title = w.article ? `${w.article} ${w.german_word}` : w.german_word;
@@ -327,8 +453,55 @@
                     container.appendChild(item);
                 });
             } catch (err) {
-                console.error("Gőzszótár betöltési hiba", err);
+                console.error("Szótár betöltési hiba", err);
             }
+        }
+
+        /* --- GYAKORLÓ LOGIKA --- */
+        function startPractice() {
+            if (savedWords.length === 0) {
+                document.getElementById('practiceWord').innerText = "Nincs mentett szó!";
+                document.getElementById('practiceTranslation').innerText = "Először ments el szavakat a szótár fülön.";
+                document.getElementById('cardFront').style.display = 'block';
+                document.getElementById('cardBack').style.display = 'none';
+                return;
+            }
+            currentPracticeIndex = 0;
+            showPracticeCard();
+        }
+
+        function showPracticeCard() {
+            if (savedWords.length === 0) return;
+            const wordObj = savedWords[currentPracticeIndex];
+            const displayTitle = wordObj.article ? `${wordObj.article} ${wordObj.german_word}` : wordObj.german_word;
+            
+            document.getElementById('practiceWord').innerText = displayTitle;
+            document.getElementById('practiceTranslation').innerText = wordObj.hungarian_translation;
+            document.getElementById('practiceExplanation').innerText = wordObj.grammar_explanation || '—';
+
+            // Alaphelyzet: előlap látszik
+            isCardFlipped = false;
+            document.getElementById('cardFront').style.display = 'block';
+            document.getElementById('cardBack').style.display = 'none';
+        }
+
+        function flipCard() {
+            if (savedWords.length === 0) return;
+            isCardFlipped = !isCardFlipped;
+            if (isCardFlipped) {
+                document.getElementById('cardFront').style.display = 'none';
+                document.getElementById('cardBack').style.display = 'block';
+            } else {
+                document.getElementById('cardFront').style.display = 'block';
+                document.getElementById('cardBack').style.display = 'none';
+            }
+        }
+
+        function nextPracticeWord() {
+            if (savedWords.length === 0) return;
+            // Véletlenszerű kártyaválasztás a mentett szavak közül
+            currentPracticeIndex = Math.floor(Math.random() * savedWords.length);
+            showPracticeCard();
         }
 
         loadHistory();
