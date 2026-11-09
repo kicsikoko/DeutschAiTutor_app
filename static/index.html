@@ -241,7 +241,7 @@
             if (e.key === 'Enter') analyzeWord();
         }
 
-        async function analyzeWord() {
+       async function analyzeWord() {
             const query = document.getElementById('queryInput').value.trim();
             if (!query) return;
 
@@ -255,9 +255,13 @@
                     body: JSON.stringify({ query })
                 });
 
-                if (!res.ok) throw new Error("Hiba a lekérés során");
+                const data = await res.json();
 
-                currentAnalysis = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || "Hiba a lekérés során");
+                }
+
+                currentAnalysis = data;
                 renderResult(currentAnalysis);
             } catch (err) {
                 alert("Hiba történt: " + err.message);

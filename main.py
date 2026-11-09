@@ -1,6 +1,7 @@
 import os
 import json
 import sqlite3
+import asyncio
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -90,7 +91,7 @@ def read_root():
 
 @app.post("/api/analyze", response_model=WordAnalysisResponse)
 async def analyze_word(req: WordAnalysisRequest):
-    """Meghívja a Gemini API-t, hogy szerkezetileg elemzzen egy német szót vagy kifejezést A2 szinten."""
+    """Meghívja a Gemini API-t automatikus újrapróbálkozással (retry) és modell-tartalékolással."""
     word = req.query.strip()
     if not word:
         raise HTTPException(status_code=400, detail="Üres kifejezést adtál meg!")
@@ -109,24 +110,41 @@ async def analyze_word(req: WordAnalysisRequest):
     - grammar_explanation: Rövid, 1-2 mondatos magyar nyelvtani magyarázat (pl. elváló igekötő, Dativ-ot vonzó prepozíció, stb.).
     """
 
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=WordAnalysisResponse,
-                temperature=0.2,
-            ),
-        )
-        if not response.text:
-            raise HTTPException(status_code=500, detail="Üres válasz érkezett a Gemini API-tól!")
+    candidate_models = ['gemini-3.5-flash-lite', 'gemini-3.8-flash']
+    last_exception = None
 
-        data = json.loads(response.text)
-        return data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini API Hiba: {str(e)}")
+    for model_name in candidate_models:
+        for attempt in range(3):
+            try:
+                print(f"Kapcsolódás: {model_name} (próbálkozás: {attempt + 1}/3)...")
+                response = await client.aio.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=WordAnalysisResponse,
+                        temperature=0.2,
+                    ),
+                )
+                if response.text:
+                    data = json.loads(response.text)
+                    return data
+            except Exception as e:
+                last_exception = e
+                err_str = str(e)
+                print(f"⚠️ {model_name} hiba ({err_str})")
+                
+                if "503" in err_str or "UNAVAILABLE" in err_str:
+                    print("Túlterheltség (503), várakozás 1.5 másodpercet az újrapróbálkozás előtt...")
+                    await asyncio.sleep(1.5)
+                    continue
+                else:
+                    break
 
+    raise HTTPException(
+        status_code=500, 
+        detail=f"Nem sikerült kapcsolódni a Gemini API-hoz. Utolsó hiba: {str(last_exception)}"
+    )
 @app.post("/api/words/save")
 def save_word(word: SaveWordRequest):
     conn = sqlite3.connect("deutsch_learning.db")
