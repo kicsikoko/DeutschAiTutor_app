@@ -4,13 +4,20 @@ import sqlite3
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-# --- GEMINI API BEÁLLÍTÁS ---
-# Cseréld ki ezt a saját API kulcsodra aistudio.google.com-ról:
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "IDE_MÁSOLD_A_GEMINI_API_KULCSODAT")
+# Környezeti változók betöltése a .env fájlból
+load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    raise ValueError("Hiba: GEMINI_API_KEY nem található a .env fájlban!")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -23,6 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Statikus mappák csatolása a PWA / Frontendhez
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def init_db():
     conn = sqlite3.connect("deutsch_learning.db")
@@ -54,9 +64,9 @@ class WordAnalysisRequest(BaseModel):
 class WordAnalysisResponse(BaseModel):
     german_word: str
     word_type: str  # "noun", "verb", "adjective", "other"
-    article: str  # "der", "die", "das", vagy üres
-    plural: str  # pl. "-e", "-en", "-¨e" vagy üres
-    conjugation_notes: str  # pl. "rief an, hat angerufen (+Akk)"
+    article: str  # "der", "die", "das", vagy üres string
+    plural: str  # pl. "-e", "-en", "-¨e" vagy üres string
+    conjugation_notes: str  # pl. "ruft an, hat angerufen (+Akk)"
     hungarian_translation: str
     example_sentences: List[str]  # 2-3 példamondat magyar fordítással
     grammar_explanation: str  # Rövid A2 nyelvtani magyarázat magyarul
@@ -74,8 +84,9 @@ class SaveWordRequest(BaseModel):
 # --- ENDPOINTS ---
 
 @app.get("/")
-def root():
-    return {"status": "ok", "message": "Deutsch A2 API fut!"}
+def read_root():
+    """Visszaadja a PWA frontend felületet (static/index.html)."""
+    return FileResponse("static/index.html")
 
 @app.post("/api/analyze", response_model=WordAnalysisResponse)
 async def analyze_word(req: WordAnalysisRequest):
@@ -92,7 +103,7 @@ async def analyze_word(req: WordAnalysisRequest):
     - word_type: "noun", "verb", "adjective" vagy "other".
     - article: Főnév esetén "der", "die", vagy "das". Egyébként üres string "".
     - plural: Főnév esetén a többes szám jele (pl. "-e", "-en", "-¨e"). Egyébként üres string "".
-    - conjugation_notes: Ige esetén E/3 jelen idő, Präteritum és Perfekt alak + vonzat (pl. "ruft an, hat angerufen (+Akkusativ)"). Főnévnél/másnál üres.
+    - conjugation_notes: Ige esetén E/3 jelen idő, Präteritum és Perfekt alak + vonzat (pl. "ruft an, hat angerufen (+Akkusativ)"). Főnévnél/másnál üres string "".
     - hungarian_translation: Pontos magyar fordítás.
     - example_sentences: 2-3 életszerű, osztrák/német A2 mindennapi példamondat magyar fordítással zárójelben.
     - grammar_explanation: Rövid, 1-2 mondatos magyar nyelvtani magyarázat (pl. elváló igekötő, Dativ-ot vonzó prepozíció, stb.).
@@ -110,7 +121,7 @@ async def analyze_word(req: WordAnalysisRequest):
         )
         if not response.text:
             raise HTTPException(status_code=500, detail="Üres válasz érkezett a Gemini API-tól!")
-            
+
         data = json.loads(response.text)
         return data
     except Exception as e:

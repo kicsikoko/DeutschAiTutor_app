@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deutsch A2 Tutor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --success-color: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-top: 12px;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent-color);
+        }
+
+        button.btn-primary {
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: none;
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button.btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+        }
+
+        .word-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .badge {
+            background-color: var(--accent-color);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .translation {
+            font-size: 1.1rem;
+            color: #38bdf8;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 12px;
+            margin-bottom: 4px;
+        }
+
+        .detail-text {
+            font-size: 0.95rem;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+
+        ul.examples {
+            list-style: none;
+            padding: 0;
+            margin-top: 6px;
+        }
+
+        ul.examples li {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .btn-save {
+            width: 100%;
+            margin-top: 16px;
+            padding: 12px;
+            background-color: var(--success-color);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .history-section h2 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+        }
+
+        .history-item {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Deutsch A2 Tutor</h1>
+        <p>AI Szótár és Nyelvtani Segéd</p>
+    </header>
+
+    <div class="search-box">
+        <input type="text" id="queryInput" placeholder="Német szó vagy mondat..." onkeypress="handleKeyPress(event)">
+        <button class="btn-primary" onclick="analyzeWord()">Elemzés</button>
+    </div>
+
+    <div id="loading" class="loading">Gemini AI elemzés folyamatban...</div>
+
+    <div id="resultCard" class="card">
+        <div class="card-header">
+            <span class="word-title" id="resWord"></span>
+            <span class="badge" id="resType"></span>
+        </div>
+        <div class="translation" id="resTranslation"></div>
+        
+        <div id="conjugationContainer">
+            <div class="section-title">Nyelvtani alaktani megjegyzés</div>
+            <div class="detail-text" id="resConjugation"></div>
+        </div>
+
+        <div class="section-title">Példamondatok (A2)</div>
+        <ul class="examples" id="resExamples"></ul>
+
+        <div class="section-title">Magyarázat</div>
+        <div class="detail-text" id="resExplanation"></div>
+
+        <button class="btn-save" onclick="saveCurrentWord()">Mentés a szótáramba</button>
+    </div>
+
+    <div class="history-section">
+        <h2>Mentett szavaim</h2>
+        <div id="historyList"></div>
+    </div>
+
+    <script>
+        let currentAnalysis = null;
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') analyzeWord();
+        }
+
+        async function analyzeWord() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) return;
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultCard').style.display = 'none';
+
+            try {
+                const res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+
+                if (!res.ok) throw new Error("Hiba a lekérés során");
+
+                currentAnalysis = await res.json();
+                renderResult(currentAnalysis);
+            } catch (err) {
+                alert("Hiba történt: " + err.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function renderResult(data) {
+            const wordDisplay = data.article ? `${data.article} ${data.german_word} ${data.plural ? '(' + data.plural + ')' : ''}` : data.german_word;
+            document.getElementById('resWord').innerText = wordDisplay;
+            document.getElementById('resType').innerText = data.word_type;
+            document.getElementById('resTranslation').innerText = data.hungarian_translation;
+            document.getElementById('resConjugation').innerText = data.conjugation_notes || '—';
+            document.getElementById('resExplanation').innerText = data.grammar_explanation || '—';
+
+            const examplesList = document.getElementById('resExamples');
+            examplesList.innerHTML = '';
+            data.example_sentences.forEach(ex => {
+                const li = document.createElement('li');
+                li.innerText = ex;
+                examplesList.appendChild(li);
+            });
+
+            document.getElementById('resultCard').style.display = 'block';
+        }
+
+        async function saveCurrentWord() {
+            if (!currentAnalysis) return;
+
+            try {
+                const res = await fetch('/api/words/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentAnalysis)
+                });
+                if (res.ok) {
+                    alert("Sikeresen elmentve!");
+                    loadHistory();
+                }
+            } catch (err) {
+                alert("Mentési hiba!");
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch('/api/words');
+                const words = await res.json();
+                const container = document.getElementById('historyList');
+                container.innerHTML = '';
+
+                words.forEach(w => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    const title = w.article ? `${w.article} ${w.german_word}` : w.german_word;
+                    item.innerHTML = `
+                        <div>
+                            <strong>${title}</strong>
+                            <div style="font-size:0.85rem; color: var(--text-muted);">${w.hungarian_translation}</div>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (err) {
+                console.error("Gőzszótár betöltési hiba", err);
+            }
+        }
+
+        loadHistory();
+    </script>
+</body>
+</html>
