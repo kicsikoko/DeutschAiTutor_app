@@ -1,0 +1,6 @@
+.env
+venv/
+deutsch_learning.db
+
+__pycache__/
+*.pyc
